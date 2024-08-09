@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client</title>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+</head>
+<body>
+    <h1>Live Stream</h1>
+    <video id="video" controls autoplay></video>
+
+    <script>
+        const video = document.getElementById('video');
+
+        const handleHlsError = (event, data) => {
+            console.error('HLS.js error:', data.fatal);
+        };
+
+        if (Hls.isSupported()) {
+            const hls = new Hls();
+            hls.on(Hls.Events.ERROR, handleHlsError);
+            hls.loadSource('/stream/hls');
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                video.play().catch(error => console.error('Error playing video:', error));
+            });
+        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+            video.src = '/stream/hls';
+            video.addEventListener('loadedmetadata', () => {
+                video.play().catch(error => console.error('Error playing video:', error));
+            });
+        } else {
+            console.error('HLS not supported or not available.');
+        }
+    </script>
+</body>
+</html>

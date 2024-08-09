@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Broadcaster</title>
+</head>
+<body>
+    <h1>Broadcaster</h1>
+    <video id="localVideo" autoplay></video>
+    <button id="startButton">Start Broadcasting</button>
+
+    <script>
+        const startButton = document.getElementById('startButton');
+        const localVideo = document.getElementById('localVideo');
+        let mediaStream;
+        let ws;
+
+        startButton.addEventListener('click', async () => {
+            if (ws) return; // Already broadcasting
+
+            try {
+                // Get video stream from webcam
+                mediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                localVideo.srcObject = mediaStream;
+
+                // Set up WebSocket connection
+                ws = new WebSocket('ws://localhost:3000/stream');
+                ws.binaryType = 'arraybuffer';
+
+                // Send video data to server
+                const mediaRecorder = new MediaRecorder(mediaStream);
+                mediaRecorder.ondataavailable = (event) => {
+                    if (ws.readyState === WebSocket.OPEN) {
+                        ws.send(event.data);
+                    }
+                };
+
+                mediaRecorder.start(100); // Send data in chunks every 100ms
+
+                ws.onopen = () => {
+                    console.log('WebSocket connection established');
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket connection closed');
+                    mediaRecorder.stop();
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            } catch (err) {
+                console.error('Error accessing media devices or WebSocket:', err);
+            }
+        });
+    </script>
+</body>
+</html>
